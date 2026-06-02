@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
+import json
 
 # تنظیمات ظاهر صفحه
 st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_icon="🎬", layout="centered")
@@ -7,7 +8,7 @@ st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_i
 st.title("🎬 دستیار ترجمه و ویرایش زیرنویس")
 st.write("فایل SRT خود را آپلود کنید تا با هوش مصنوعی و لحن عامیانه ترجمه شود.")
 
-# ورودی کلید API در منوی کناری (کاملاً امن و بدون هشدار گیت‌هاب)
+# ورودی کلید API در منوی کناری (کاملاً امن)
 api_key = st.sidebar.text_input("کلید Gemini API خود را وارد کنید:", type="password")
 
 # تنظیم پرامپت اختصاصی برای ترجمه زیرنویس
@@ -20,16 +21,27 @@ system_prompt = (
 def translate_text(text, api_key):
     if not api_key:
         return text
+    
+    # اتصال مستقیم به آدرس رسمی و پایدار گوگل بدون واسطه کتابخانه‌ها
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    headers = {'Content-Type': 'application/json'}
+    
+    payload = {
+        "contents": [{
+            "parts": [{"text": f"{system_prompt}\n\nمتن برای ترجمه:\n{text}"}]
+        }]
+    }
+    
     try:
-        # تنظیمات رسمی اتصال به مدل جدید
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name='gemini-1.5-flash')
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        res_json = response.json()
         
-        full_prompt = f"{system_prompt}\n\nمتن برای ترجمه:\n{text}"
-        response = model.generate_content(full_prompt)
-        return response.text.strip()
+        if response.status_code == 200:
+            return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+        else:
+            return f"[خطا از سمت گوگل: {res_json.get('error', {}).get('message', 'خطای ناشناخته')}]"
     except Exception as e:
-        return f"[خطا در ترجمه: {str(e)}]"
+        return f"[خطا در شبکه: {str(e)}]"
 
 # آپلودر فایل
 uploaded_file = st.file_uploader("انتخاب فایل زیرنویس (SRT)", type=["srt"])
