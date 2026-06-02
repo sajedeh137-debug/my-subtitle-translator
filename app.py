@@ -23,8 +23,8 @@ def translate_text(text, api_key):
         return text
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(f"{system_prompt}\n\nمتن برای ترجمه:\n{text}")
+model = genai.GenerativeModel('gemini-1.5-flash') 
+response = model.generate_content(f"{system_prompt}\n\nمتن برای ترجمه:\n{text}")
         return response.text.strip()
     except Exception as e:
         return f"[خطا در ترجمه: {str(e)}]"
