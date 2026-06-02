@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai import types
 
 # تنظیمات ظاهر صفحه
 st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_icon="🎬", layout="centered")
@@ -22,15 +21,12 @@ def translate_text(text, api_key):
     if not api_key or api_key == "کلید_ای_پی_ای_خودت_رو_دقیق_اینجا_بذار":
         return "[خطا: لطفاً ابتدا کلید API معتبر را در کدهای گیت‌هاب قرار دهید]"
     try:
-        # فورس کردن کتابخانه به استفاده از نسخه پایدار v1
-        client_options = {"api_version": "v1"}
-        genai.configure(api_key=api_key, client_options=client_options, transport='rest')
+        # تنظیم ساده و استاندارد کلید بدون آپشن‌های اضافه
+        genai.configure(api_key=api_key)
         
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash'
-        )
+        # استفاده از مدل با ساختار رسمی و استاندارد گوگل
+        model = genai.GenerativeModel(model_name='gemini-1.5-flash')
         
-        # فرستادن سیستم پرامپت همراه با متن برای اطمینان از اعمال لحن عامیانه
         full_prompt = f"{system_prompt}\n\nمتن برای ترجمه:\n{text}"
         response = model.generate_content(full_prompt)
         return response.text.strip()
