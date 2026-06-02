@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from google.generativeai import types
 
 # تنظیمات ظاهر صفحه
 st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_icon="🎬", layout="centered")
@@ -7,7 +8,7 @@ st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_i
 st.title("🎬 دستیار ترجمه و ویرایش زیرنویس")
 st.write("فایل SRT خود را آپلود کنید تا با هوش مصنوعی و لحن عامیانه ترجمه شود.")
 
-# قرار دادن مستقیم کلید API در کد (به جای عبارت زیر، کلید خودت را بگذار)
+# قرار دادن مستقیم کلید API در کد
 API_KEY = "AQ.Ab8RN6KYF9KauVzSgwPieCQvkcAWzrrMJTcWtB2x9U9eCqcTIg"
 
 # تنظیم پرامپت اختصاصی برای ترجمه زیرنویس
@@ -21,13 +22,17 @@ def translate_text(text, api_key):
     if not api_key or api_key == "کلید_ای_پی_ای_خودت_رو_دقیق_اینجا_بذار":
         return "[خطا: لطفاً ابتدا کلید API معتبر را در کدهای گیت‌هاب قرار دهید]"
     try:
-        # تنظیم نسخه جدید و سازگار با مدل‌های ۱.۵
-        genai.configure(api_key=api_key, transport='rest')
+        # فورس کردن کتابخانه به استفاده از نسخه پایدار v1
+        client_options = {"api_version": "v1"}
+        genai.configure(api_key=api_key, client_options=client_options, transport='rest')
+        
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=system_prompt
+            model_name='gemini-1.5-flash'
         )
-        response = model.generate_content(text)
+        
+        # فرستادن سیستم پرامپت همراه با متن برای اطمینان از اعمال لحن عامیانه
+        full_prompt = f"{system_prompt}\n\nمتن برای ترجمه:\n{text}"
+        response = model.generate_content(full_prompt)
         return response.text.strip()
     except Exception as e:
         return f"[خطا در ترجمه: {str(e)}]"
@@ -42,7 +47,6 @@ if uploaded_file is not None:
     st.success("فایل با موفقیت بارگذاری شد!")
     
     if st.button("شروع فرآیند ترجمه پیشرفته"):
-        # جدا کردن بلوک‌های زیرنویس
         blocks = content.strip().split('\n\n')
         new_blocks = []
         
@@ -63,13 +67,11 @@ if uploaded_file is not None:
             else:
                 new_blocks.append(block)
             
-            # به‌روزرسانی نوار پیشرفت
             progress_bar.progress((index + 1) / len(blocks))
         
         status_text.text("ترجمه با موفقیت کامل شد!")
         final_srt = "\n\n".join(new_blocks)
         
-        # دکمه دانلود فایل نهایی
         st.download_button(
             label="📥 دانلود فایل زیرنویس ترجمه شده",
             data=final_srt,
