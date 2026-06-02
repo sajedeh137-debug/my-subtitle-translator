@@ -7,8 +7,8 @@ st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_i
 st.title("🎬 دستیار ترجمه و ویرایش زیرنویس")
 st.write("فایل SRT خود را آپلود کنید تا با هوش مصنوعی و لحن عامیانه ترجمه شود.")
 
-# قرار دادن مستقیم کلید API در کد
-API_KEY = "AQ.Ab8RN6KYF9KauVzSgwPieCQvkcAWzrrMJTcWtB2x9U9eCqcTIg"
+# ورودی کلید API در منوی کناری (کاملاً امن و بدون هشدار گیت‌هاب)
+api_key = st.sidebar.text_input("کلید Gemini API خود را وارد کنید:", type="password")
 
 # تنظیم پرامپت اختصاصی برای ترجمه زیرنویس
 system_prompt = (
@@ -18,13 +18,11 @@ system_prompt = (
 )
 
 def translate_text(text, api_key):
-    if not api_key or api_key == "کلید_ای_پی_ای_خودت_رو_دقیق_اینجا_بذار":
-        return "[خطا: لطفاً ابتدا کلید API معتبر را در کدهای گیت‌هاب قرار دهید]"
+    if not api_key:
+        return text
     try:
-        # تنظیم ساده و استاندارد کلید بدون آپشن‌های اضافه
+        # تنظیمات رسمی اتصال به مدل جدید
         genai.configure(api_key=api_key)
-        
-        # استفاده از مدل با ساختار رسمی و استاندارد گوگل
         model = genai.GenerativeModel(model_name='gemini-1.5-flash')
         
         full_prompt = f"{system_prompt}\n\nمتن برای ترجمه:\n{text}"
@@ -43,34 +41,37 @@ if uploaded_file is not None:
     st.success("فایل با موفقیت بارگذاری شد!")
     
     if st.button("شروع فرآیند ترجمه پیشرفته"):
-        blocks = content.strip().split('\n\n')
-        new_blocks = []
-        
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        for index, block in enumerate(blocks):
-            lines = block.split('\n')
-            if len(lines) >= 3:
-                num = lines[0]
-                timestamp = lines[1]
-                text_to_translate = "\n".join(lines[2:])
-                
-                status_text.text(f"در حال ترجمه خط {index + 1} از {len(blocks)}...")
-                translated_text = translate_text(text_to_translate, API_KEY)
-                
-                new_blocks.append(f"{num}\n{timestamp}\n{translated_text}")
-            else:
-                new_blocks.append(block)
+        if not api_key:
+            st.error("لطفاً ابتدا کلید API خود را در منوی کناری وارد کنید.")
+        else:
+            blocks = content.strip().split('\n\n')
+            new_blocks = []
             
-            progress_bar.progress((index + 1) / len(blocks))
-        
-        status_text.text("ترجمه با موفقیت کامل شد!")
-        final_srt = "\n\n".join(new_blocks)
-        
-        st.download_button(
-            label="📥 دانلود فایل زیرنویس ترجمه شده",
-            data=final_srt,
-            file_name="translated_subtitle.srt",
-            mime="text/plain"
-        )
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for index, block in enumerate(blocks):
+                lines = block.split('\n')
+                if len(lines) >= 3:
+                    num = lines[0]
+                    timestamp = lines[1]
+                    text_to_translate = "\n".join(lines[2:])
+                    
+                    status_text.text(f"در حال ترجمه خط {index + 1} از {len(blocks)}...")
+                    translated_text = translate_text(text_to_translate, api_key)
+                    
+                    new_blocks.append(f"{num}\n{timestamp}\n{translated_text}")
+                else:
+                    new_blocks.append(block)
+                
+                progress_bar.progress((index + 1) / len(blocks))
+            
+            status_text.text("ترجمه با موفقیت کامل شد!")
+            final_srt = "\n\n".join(new_blocks)
+            
+            st.download_button(
+                label="📥 دانلود فایل زیرنویس ترجمه شده",
+                data=final_srt,
+                file_name="translated_subtitle.srt",
+                mime="text/plain"
+            )
