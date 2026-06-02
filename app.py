@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import re
 
 # تنظیمات ظاهر صفحه
 st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_icon="🎬", layout="centered")
@@ -8,8 +7,8 @@ st.set_page_config(page_title="مترجم زیرنویس اختصاصی", page_i
 st.title("🎬 دستیار ترجمه و ویرایش زیرنویس")
 st.write("فایل SRT خود را آپلود کنید تا با هوش مصنوعی و لحن عامیانه ترجمه شود.")
 
-# ورودی کلید API جی‌ام‌نی
-api_key = st.sidebar.text_input("کلید Gemini API خود را وارد کنید:", type="password")
+# قرار دادن مستقیم کلید API در کد (به جای عبارت زیر، کلید خودت را بگذار)
+API_KEY = "AQ.Ab8RN6KYF9KauVzSgwPieCQvkcAWzrrMJTcWtB2x9U9eCqcTIg"
 
 # تنظیم پرامپت اختصاصی برای ترجمه زیرنویس
 system_prompt = (
@@ -19,12 +18,16 @@ system_prompt = (
 )
 
 def translate_text(text, api_key):
-    if not api_key:
-        return text
+    if not api_key or api_key == "کلید_ای_پی_ای_خودت_رو_دقیق_اینجا_بذار":
+        return "[خطا: لطفاً ابتدا کلید API معتبر را در کدهای گیت‌هاب قرار دهید]"
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(f"{system_prompt}\n\nمتن برای ترجمه:\n{text}")
+        # تنظیم نسخه جدید و سازگار با مدل‌های ۱.۵
+        genai.configure(api_key=api_key, transport='rest')
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            system_instruction=system_prompt
+        )
+        response = model.generate_content(text)
         return response.text.strip()
     except Exception as e:
         return f"[خطا در ترجمه: {str(e)}]"
@@ -39,40 +42,37 @@ if uploaded_file is not None:
     st.success("فایل با موفقیت بارگذاری شد!")
     
     if st.button("شروع فرآیند ترجمه پیشرفته"):
-        if not api_key:
-            st.error("لطفاً ابتدا کلید API خود را در منوی کناری وارد کنید.")
-        else:
-            # جدا کردن بلوک‌های زیرنویس
-            blocks = content.strip().split('\n\n')
-            new_blocks = []
-            
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            for index, block in enumerate(blocks):
-                lines = block.split('\n')
-                if len(lines) >= 3:
-                    num = lines[0]
-                    timestamp = lines[1]
-                    text_to_translate = "\n".join(lines[2:])
-                    
-                    status_text.text(f"در حال ترجمه خط {index + 1} از {len(blocks)}...")
-                    translated_text = translate_text(text_to_translate, api_key)
-                    
-                    new_blocks.append(f"{num}\n{timestamp}\n{translated_text}")
-                else:
-                    new_blocks.append(block)
+        # جدا کردن بلوک‌های زیرنویس
+        blocks = content.strip().split('\n\n')
+        new_blocks = []
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        for index, block in enumerate(blocks):
+            lines = block.split('\n')
+            if len(lines) >= 3:
+                num = lines[0]
+                timestamp = lines[1]
+                text_to_translate = "\n".join(lines[2:])
                 
-                # به‌روزرسانی نوار پیشرفت
-                progress_bar.progress((index + 1) / len(blocks))
+                status_text.text(f"در حال ترجمه خط {index + 1} از {len(blocks)}...")
+                translated_text = translate_text(text_to_translate, API_KEY)
+                
+                new_blocks.append(f"{num}\n{timestamp}\n{translated_text}")
+            else:
+                new_blocks.append(block)
             
-            status_text.text("ترجمه با موفقیت کامل شد!")
-            final_srt = "\n\n".join(new_blocks)
-            
-            # دکمه دانلود فایل نهایی
-            st.download_button(
-                label="📥 دانلود فایل زیرنویس ترجمه شده",
-                data=final_srt,
-                file_name="translated_subtitle.srt",
-                mime="text/plain"
-            )
+            # به‌روزرسانی نوار پیشرفت
+            progress_bar.progress((index + 1) / len(blocks))
+        
+        status_text.text("ترجمه با موفقیت کامل شد!")
+        final_srt = "\n\n".join(new_blocks)
+        
+        # دکمه دانلود فایل نهایی
+        st.download_button(
+            label="📥 دانلود فایل زیرنویس ترجمه شده",
+            data=final_srt,
+            file_name="translated_subtitle.srt",
+            mime="text/plain"
+        )
