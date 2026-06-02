@@ -22,8 +22,8 @@ def translate_text(text, api_key):
     if not api_key:
         return text
     
-    # اتصال مستقیم به آدرس رسمی و پایدار گوگل بدون واسطه کتابخانه‌ها
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # استفاده از مدل جدید و پایدار سیستم گوگل جهت جلوگیری از ارور 404
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
     
     payload = {
